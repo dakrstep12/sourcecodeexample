@@ -1,0 +1,918 @@
+<c-page-container>
+  <c-header
+    [link]="params === 'new' ? '/app/setting/shipping-channels/create/new' : '/app/setting/shipping-channels/create/' + params"
+    link2="/app/setting/shipping-channels"
+    topic="การตั้งค่า"
+    secondTopic="ช่องทางการขนส่ง"
+    [heading]="params === 'new' ? 'สร้างช่องทางการขนส่ง' : 'แก้ไขช่องทางการขนส่ง'"
+  >
+  <img id="svgTag" src="assets/images_main/settingPage.svg" class="min-w-8 max-w-8 min-h-8 max-h-8">
+    
+    <div class="ml-auto flex flex-row " id="buttonGroup">
+      <button routerLink="/app/setting/shipping-channels" class="btn_disabled">
+        ย้อนกลับ
+      </button>
+      <!-- [ngClass]="shippingFormReal.valid && shippingFormReal.get('deliveryTime.earliest') < shippingFormReal.get('deliveryTime.last') ? 'btn_blue_small' : 'btn_blue_small_disabled'" -->
+      <button
+        *ngIf="!clicked && shippingFormReal.valid && shippingFormReal.get('deliveryTime.earliest').value < shippingFormReal.get('deliveryTime.last').value"
+        [disabled]="clicked"
+        (click)="params === 'new' ? submit() : update()"
+        class="ml-3 btn_blue_small"
+      >
+        {{ params === 'new' ? 'สร้างช่องทาง' : 'บันทึก' }}
+      </button>
+      <button
+        *ngIf="clicked || shippingFormReal.invalid
+        || shippingFormReal.get('deliveryTime.earliest').value > shippingFormReal.get('deliveryTime.last').value
+        || shippingFormReal.get('deliveryTime.earliest').value == shippingFormReal.get('deliveryTime.last').value"
+        class="ml-3 btn_blue_small_disabled"
+      >
+        {{ params === 'new' ? 'สร้างช่องทาง' : 'บันทึก' }}
+      </button>
+    </div>
+  </c-header>
+
+  <div class="card p-8">
+    <div class="flex items-center gap-2 mb-3">
+      <div class="">
+        <img class="h-10" src="assets/images/pinIcon/ช่องทางการขนส่ง.svg" />
+      </div>
+      <span class="title-main">เพิ่มช่องทางการจัดส่ง</span>
+    </div>
+
+    <div class="bg-gray-200 rounded-md h-0.5 mt-2 mb-2"></div>
+
+    <form [formGroup]="shippingFormReal" class="flex flex-col gap-4">
+      <div *ngIf="params == 'new'" class="flex flex-wrap gap-4 mt-5">
+        <ng-container *ngFor="let item of shippingList">
+          <button
+            class="border-2 border-gray-300 rounded-md p-3 w-32 h-36"
+            (click)="selPayment(item)"
+            [ngClass]="
+              selShipping?.shippingMethodName === item.shippingMethodName
+                ? '  border-green-island-500 bg-green-island-100'
+                : ''
+            "
+          >
+            <div class="flex flex-col items-center justify-center gap-3">
+              <div class="flex items-center">
+                <img
+                  class="
+                    min-w-16
+                    max-w-16
+                    min-h-16
+                    max-h-16
+                    rounded-md
+                    bg-contain
+                    object-contain
+                    border border-gray-100
+                    bg-center bg-no-repeat
+                  "
+                  [src]="item.shippingMethodIconUrl"
+                  alt=""
+                />
+              </div>
+              <div class="min-h-13 max-h-13 flex justify-center items-center">
+                <p *ngIf="item.shippingMethodName !== 'line man'" class="capitalize">
+                  {{ item.shippingMethodName }}
+                </p>
+                <p *ngIf="item.shippingMethodName == 'line man'" class="uppercase">
+                  {{ item.shippingMethodName }}
+                </p>
+              </div>
+            </div>
+          </button>
+        </ng-container>
+        <button
+          class="border-2 border-gray-300 rounded-md p-3 w-32 h-36"
+          (click)="
+            selPayment({
+              shippingMethodName: 'other',
+              shippingMethodIconUrl: ''
+            })
+          "
+          [ngClass]="
+            selShipping?.shippingMethodName === 'other'
+              ? '  border-green-island-500 bg-green-island-100'
+              : ''
+          "
+        >
+          <div class="flex flex-col items-center justify-center gap-3">
+            <div class="flex items-center">
+              <img
+                class="
+                  min-w-16
+                  max-w-16
+                  min-h-16
+                  max-h-16
+                  rounded-md
+                  bg-contain
+                  object-contain
+                  border border-gray-100
+                  bg-center bg-no-repeat
+                "
+                src="assets/images/icon_truck.png"
+                alt=""
+              />
+            </div>
+            <div class="min-h-13 max-h-13 flex justify-center items-center">
+              <p>ช่องทางอื่นๆ</p>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div class="borderCard p-5 mt-4 flex flex-col gap-4" *ngIf="selShipping">
+        <div class="flex items-center gap-2">
+          <div *ngIf="selShipping.shippingMethodName !== 'other'">
+            <p class="text-lg">
+              {{ shippingFormReal.get('shippingAliasName').value }}
+            </p>
+          </div>
+
+          <div *ngIf="selShipping.shippingMethodName === 'other'">
+            <div class="flex flex-row space-x-2">
+              <c-input
+                [required]="true"
+                classInput="w-full inputBorder"
+                [control]="shippingFormReal.get('shippingAliasName')"
+                placeholder="ชื่อช่องทางขนส่ง"
+              ></c-input>
+              <span class="text-red-500">*</span>
+            </div>
+           
+          </div>
+          <p *ngIf="shippingFormReal.get('note').value">
+            ({{ shippingFormReal.get('note').value }})
+          </p>
+
+          <!-- COD ปิดไว้ก่อนยังไม่ได้ใช้ -->
+          <!-- <div class="flex flex-row items-center space-x-2 ml-4">
+            <input [formControl]="shippingFormReal.get('isCOD')" id="chk_delivery" type="checkbox" class="focus:ring-transparent ring-0 focus:outline-none" />
+            <label for="chk_delivery">ชำระเงินปลายทาง</label>
+          </div>       -->
+
+        </div>
+        <div class="flex flex-row gap-4">
+          <div>
+            <img
+              *ngIf="selShipping.shippingMethodName !== 'other'"
+              class="picSettingSales"
+              [src]="selShipping.shippingMethodIconUrl"
+            />
+            <img
+              *ngIf="selShipping.shippingMethodName === 'other'"
+              class="picSettingSales"
+              src="assets/images/icon_truck.png"
+            />
+          </div>
+          <div class="flex flex-col gap-4 w-full">
+            <div class="flex gap-4 flex-wrap">
+              <div class="w-80">
+                <div class="mb-1">
+                  วิธีการคำนวนราคา <span class="text-red-500">*</span>
+                </div>
+                <select
+                  (change)="selectType($event.target.value)"
+                  class="inputBorder w-full"
+                  name="type"
+                  id="selectedType"
+                >
+                  <option value="">เลือกวิธีการคำนวนราคา</option>
+                  <ng-container *ngFor="let item of typePaymentLists">
+                    <option [selected]="selType === item.value" [value]="item.value">
+                      {{ item.type }}
+                    </option>
+                  </ng-container>
+                </select>
+              </div>
+              <div class="flex-wrap w-56">
+                <div class="mb-1">ระยะเวลาจัดส่ง</div>
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-2">
+                    <c-input
+                      (keyup)="patchDeliveryTime($event.target.value, 'deliveryTime.earliest')"   
+                      [control]="shippingFormReal.get('deliveryTime.earliest')"    
+                      classInput="inputBorder w-16 text-center"
+                      [dNumber]="true"
+                    ></c-input>
+                    วัน
+                  </div>
+                  <div>-</div>
+                  <div class="flex items-center gap-2">
+                    <c-input
+                      (keyup)="patchDeliveryTime($event.target.value, 'deliveryTime.last')"
+                      [control]="shippingFormReal.get('deliveryTime.last')"
+                      classInput="inputBorder w-16 text-center"
+                      [dNumber]="true"
+                    ></c-input>
+                    วัน
+                  </div>
+                </div>
+              </div>
+              <div class="flex-wrap w-60">
+                <c-input
+                  [control]="shippingFormReal.get('note')"
+                  label="บันทึกภายใน"
+                  classInput="w-full inputBorder"
+                  placeholder="บันทึกภายใน"
+                  maxlenght="30"
+                ></c-input>
+              </div>
+            </div>
+            <ng-container [ngSwitch]="selType">
+              <div *ngSwitchCase="'free'">
+                <span class="text-sm" style="color: #00c1c9"
+                  >** ท่านได้เลือกวิธีการจัดส่งแบบ
+                  <span class="text-base underline">ฟรี ไม่มีค่าจัดส่ง</span></span
+                >
+              </div>
+              <div
+                *ngSwitchCase="'fixedRate'"
+                class="flex flex-col gap-4"
+              >
+              <div class="flex flex-col gap-4">
+                <p class="titleMain mb-2">
+                  กำหนดค่าส่งพัสดุแบบคงที่
+                </p>
+                <div class="flex gap-2 items-center">
+                  <c-input
+                    [control]="shippingFormReal.get('shippingMethodAttribute.shippingCost')"
+                    classInput="w-full inputBorder text-right"
+                    placeholder="จำนวนเงิน"
+                    [dNumber]="true"
+                    dMask="separator.2"
+                    thousandSeparator=","
+                    (valueControl)="
+                      convertNumber($event.target.value, 'shippingMethodAttribute.shippingCost')
+                    "
+                  ></c-input>
+                  บาท
+                </div>
+              </div>
+               
+                <div class="flex gap-4 items-center">
+                  <div class="flex gap-3 items-center">
+                    <input    
+                      type="checkbox"
+                      class="w-5 h-5"
+                      id="cbShipfree"
+                      [formControl]="cbfixedRate"
+                      (change)="onUpdateShipfree('shippingMethodAttribute.minOrderTotalAmount', 'cbfixedRate')"
+                    />
+                    <div class="text-lg">
+                      <span style="color: #ff8e00"> **เงื่อนไขพิเศษ </span> จัดส่งฟรี
+                      เมื่อราคาของสินค้าหลังหักส่วนลดแล้ว มากกว่า
+                    </div>
+                  </div>
+                  
+                  <div class="flex gap-2 items-center">
+                    <c-input
+                      [control]="shippingFormReal.get('shippingMethodAttribute.minOrderTotalAmount')"
+                      classInput="w-full text-right {{ cbfixedRate.value == true ? 'inputBorder' : 'inputBorder-disabled' }}"
+                      placeholder="จำนวนเงิน"
+                      [dNumber]="true"
+                      dMask="separator.2"
+                      thousandSeparator=","
+                      [disabled]="cbfixedRate.value == true ? false : true"
+                      (valueControl)="
+                        convertNumberShipfree(
+                          'cbfixedRate',
+                          $event.target.value,
+                          'shippingMethodAttribute.minOrderTotalAmount'
+                        )
+                      "        
+                    ></c-input>
+                    บาท
+                  </div>
+                </div>
+              </div>
+              <div
+                *ngSwitchCase="'basedByPcs'"
+                class="flex flex-col gap-4"
+              >
+                <div class="mb-2">คิดตามจำนวนสินค้า (คิดเป็นชิ้น)</div>
+                <div class="flex gap-2 items-center">
+                  ชิ้นแรก
+                  <c-input
+                    [control]="shippingFormReal.get('shippingMethodAttribute.shippingCostFirstPcs')"
+                    classInput="w-full inputBorder text-right"
+                    placeholder="จำนวนเงิน"
+                    [dNumber]="true"
+                    dMask="separator.2"
+                    thousandSeparator=","
+                    (valueControl)="
+                      convertNumber(
+                        $event.target.value,
+                        'shippingMethodAttribute.shippingCostFirstPcs'
+                      )
+                    "
+                  ></c-input>
+                  บาท
+                  <!-- <div class="flex gap-2">
+                    <input id="chk_free" type="checkbox" />
+                    <label for="chk_free">ไม่คิดค่าจัดส่ง</label>
+                  </div> -->
+                </div>
+                <div class="flex gap-2 items-center">
+                  ชิ้นถัดไปชิ้นละ
+                  <c-input
+                    [control]="shippingFormReal.get('shippingMethodAttribute.shippingCostPerPcs')"
+                    classInput="w-full inputBorder text-right"
+                    placeholder="จำนวนเงิน"
+                    [dNumber]="true"
+                    dMask="separator.2"
+                    thousandSeparator=","
+                    (valueControl)="
+                      convertNumber(
+                        $event.target.value,
+                        'shippingMethodAttribute.shippingCostPerPcs'
+                      )
+                    "
+                  ></c-input>
+                  บาท
+                  <!-- <div class="flex gap-2">
+                    <input id="chk_free" type="checkbox" />
+                    <label for="chk_free">ไม่คิดค่าจัดส่ง</label>
+                  </div> -->
+                </div>
+                <div class="flex gap-4 items-center">
+                  <div class="flex gap-3 items-center">
+                    <input         
+                      type="checkbox"
+                      class="w-5 h-5"
+                      id="cbShipfree"
+                      [formControl]="cbbasedByPcs"
+                      (change)="onUpdateShipfree('shippingMethodAttribute.minOrderTotalAmount', 'cbbasedByPcs')"
+                    />
+
+                    <div class="text-lg">
+                      <span style="color: #ff8e00"> **เงื่อนไขพิเศษ </span> จัดส่งฟรี
+                      เมื่อราคาของสินค้าหลังหักส่วนลดแล้ว มากกว่า
+                    </div>
+                  </div>
+
+                  <div class="flex gap-2 items-center">
+                    <c-input
+                      [control]="
+                        shippingFormReal.get('shippingMethodAttribute.minOrderTotalAmount')
+                      "
+                      classInput="w-full text-right {{ cbbasedByPcs.value == true ? 'inputBorder' : 'inputBorder-disabled' }}"
+                      placeholder="จำนวนเงิน"
+                      [dNumber]="true"
+                      dMask="separator.2"
+                      thousandSeparator=","
+                      [disabled]="cbbasedByPcs.value == true ? false : true"
+                      (valueControl)="
+                        convertNumberShipfree(
+                          'cbbasedByPcs',
+                          $event.target.value,
+                          'shippingMethodAttribute.minOrderTotalAmount'
+                        )
+                      "
+                    ></c-input>
+                    บาท
+                  </div>
+                </div>
+                <!-- <div>
+                  <button class="btn_add">เพิ่มจำนวนชิ้น</button>
+                </div> -->
+              </div>
+              <div
+                formGroupName="shippingMethodAttribute"
+                *ngSwitchCase="'basedByStepPcs'"
+                class="flex flex-col gap-7"
+              >
+                <div class="mb-2">คิดตามจำนวนสินค้า</div>
+                <div
+                  formArrayName="shippingCost"
+                  *ngFor="let item of groupArrshippingMethodAttribute.controls; let i = index"
+                  class="flex gap-4 items-center"
+                >
+                  <div [formGroupName]="i" class="flex gap-4 items-center">
+                    <div class="">
+                      <div class="flex flex-row gap-2 items-center w-96">
+                        ไม่เกิน
+                        <c-input
+                          [groupArrshipping]="true"
+                          (keyup)="setExceedChange('basedByStepPcs')"
+                          [control]="item.get('minPcs')"
+                          classInput="w-full inputBorder text-right"
+                          placeholder="จำนวนชิ้น"
+                          dMask="separator.0"
+                          [dNumber]="true"
+                          thousandSeparator=","
+                          (valueControl)="
+                            convertArrNumber(
+                              $event.target.value,
+                              'basedByStepPcs',
+                              'minPcs',
+                              i
+                            )
+                          "
+                        ></c-input>
+                        ชิ้น
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <div class="flex gap-2 items-center">
+                        <c-input
+                          [control]="item.get('shippingCost')"
+                          classInput="w-full inputBorder text-right"
+                          placeholder="จำนวนเงิน"
+                          [dNumber]="true"
+                          dMask="separator.2"
+                          thousandSeparator=","
+                          (valueControl)="
+                            convertArrNumber(
+                              $event.target.value,
+                              'basedByStepPcs',
+                              'shippingCost',
+                              i
+                            )
+                          "
+                        ></c-input>
+                        บาท
+                        <!-- <div class="flex gap-2">
+                          <input
+                            [formControl]="item.get('freeshipping')"
+                            id="chk_product{{ i }}"
+                            type="checkbox"
+                          />
+                          <label for="chk_product{{ i }}">ไม่คิดค่าจัดส่ง</label>
+                        </div> -->
+                      </div>
+
+                      <div class="flex gap-2 items-end">
+                        <button
+                          *ngIf="i > 0"
+                          (click)="deleteGroup(i, 'basedByStepPcs')"
+                          class="bullet_gray"
+                          style="width: 35px; height: 35px"
+                        >
+                          <fa-icon [icon]="faTrash"></fa-icon>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex gap-4 items-center">
+                  <div class="w-96">
+                    เกิน
+                    {{
+                      formgExceedbasedByStepPcs.get('minPcs')
+                        .value | number
+                    }}
+                    ชิ้นขึ้นไป
+                  </div>
+                  <div class="flex gap-2">
+                    <div class="flex gap-2 items-center">
+                      <c-input
+                        [control]="
+                          formgExceedbasedByStepPcs.get('shippingCost')
+                        "
+                        classInput="w-full inputBorder text-right"
+                        placeholder="จำนวนเงิน"
+                        [dNumber]="true"
+                        dMask="separator.2"
+                        thousandSeparator=","
+                        (valueControl)="
+                          convertNumberExceed(
+                            $event.target.value,
+                            'formgExceedbasedByStepPcs',
+                            'shippingCost'
+                          )
+                        "
+                      ></c-input>
+                      บาท
+                      <!-- <div class="flex gap-2">
+                        <input
+                          [formControl]="
+                            shippingForm.get('calnumberProducts.exceedPiece.freeshipping')
+                          "
+                          id="chk_productExceed"
+                          type="checkbox"
+                        />
+                        <label for="chk_productExceed">ไม่คิดค่าจัดส่ง</label>
+                      </div> -->
+                    </div>
+                  </div>
+                </div>
+                <div class="flex gap-4 items-center">
+                  <div class="flex gap-3 items-center">
+                    <input         
+                      type="checkbox"
+                      class="w-5 h-5"
+                      id="cbShipfree"
+                      [formControl]="cbbasedByStepPcs"
+                      (change)="onUpdateShipfree('shippingMethodAttribute.minOrderTotalAmount', 'cbbasedByStepPcs')"
+                    />
+
+                    <div class="text-lg">
+                      <span style="color: #ff8e00"> **เงื่อนไขพิเศษ </span> จัดส่งฟรี
+                      เมื่อราคาของสินค้าหลังหักส่วนลดแล้ว มากกว่า
+                    </div>
+                  </div>
+
+                  <div class="flex gap-2 items-center">
+                    <c-input
+                      [control]="shippingFormReal.get('shippingMethodAttribute.minOrderTotalAmount')"
+                      classInput="w-full text-right {{ cbbasedByStepPcs.value == true ? 'inputBorder' : 'inputBorder-disabled' }}"
+                      placeholder="จำนวนเงิน"
+                      [dNumber]="true"
+                      dMask="separator.2"
+                      thousandSeparator=","
+                      [disabled]="cbbasedByStepPcs.value == true ? false : true"
+                      (valueControl)="
+                        convertNumberShipfree(
+                          'cbbasedByStepPcs',
+                          $event.target.value,
+                          'shippingMethodAttribute.minOrderTotalAmount'
+                        )
+                      "
+                    ></c-input>
+                    บาท
+                  </div>
+                </div>
+                <div>
+                  <button
+                    *ngIf="
+                      shippingFormReal.get('shippingMethodAttribute.shippingCost').value.length <
+                      5
+                    "
+                    (click)="addRow('basedByStepPcs', shippingFormReal.get('shippingMethodAttribute.shippingCost').value.length)"
+                    class="btn_add"
+                  >
+                    เพิ่มจำนวนช่วง
+                  </button>
+                </div>
+              </div>
+
+              <div
+                formGroupName="shippingMethodAttribute"
+                *ngSwitchCase="'basedByStepWeight'"
+                class="flex flex-col gap-7"
+              >
+                <div class="mb-2">คิดตามน้ำหนักรวมของสินค้า</div>
+
+                <div
+                  formArrayName="shippingCost"
+                  *ngFor="
+                    let item of groupArrshippingMethodAttribute.controls;
+                    let i = index
+                  "
+                  class="flex gap-4 items-center"
+                >
+                  <div [formGroupName]="i" class="flex gap-4 items-center">
+                    <div class="">
+                      <div class="flex gap-2 items-center w-96">
+                        ไม่เกิน
+                        <c-input
+                          [groupArrshipping]="true"
+                          (keyup)="setExceedChange('basedByStepWeight')"
+                          [control]="item.get('minWeight')"
+                          classInput="w-full inputBorder text-right"
+                          decimal="2"
+                          dMask="separator.2"
+                          thousandSeparator=","
+                          placeholder="จำนวนน้ำหนัก"
+                          [dNumber]="true"
+                          (valueControl)="
+                            convertArrNumber(
+                              $event.target.value,
+                              'basedByStepWeight',
+                              'minWeight',
+                              i
+                            )
+                          "
+                        ></c-input>
+                        <p class="">กิโลกรัม</p>
+                        <!-- <select class="inputBorder">
+                          <option value="กิโลกรัม" selected>กิโลกรัม</option>
+                        </select> -->
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <div class="flex gap-2 items-center">
+                        <c-input
+                          [control]="item.get('shippingCost')"
+                          classInput="w-full inputBorder text-right"
+                          placeholder="จำนวนเงิน"
+                          [dNumber]="true"
+                          dMask="separator.2"
+                          thousandSeparator=","
+                          (valueControl)="
+                            convertArrNumber(
+                              $event.target.value,
+                              'basedByStepWeight',
+                              'shippingCost',
+                              i
+                            )
+                          "
+                        ></c-input>
+                        บาท
+                        <!-- <div class="flex gap-2">
+                          <input
+                            [formControl]="item.get('freeshipping')"
+                            id="chk_weight{{ i }}"
+                            type="checkbox"
+                          />
+                          <label for="chk_weight{{ i }}">ไม่คิดค่าจัดส่ง</label>
+                        </div> -->
+
+                        <div class="flex gap-2 items-end">
+                          <button
+                            *ngIf="i > 0"
+                            (click)="deleteGroup(i, 'basedByStepWeight')"
+                            class="bullet_gray"
+                            style="width: 35px; height: 35px"
+                          >
+                            <fa-icon [icon]="faTrash"></fa-icon>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex gap-4 items-center">
+                  <div class="w-96">
+                    เกิน
+                    {{
+                      formgExceedbasedByStepWeight.get('minWeight')
+                        .value | number
+                    }}
+                    กิโลกรัมขึ้นไป
+                  </div>
+                  <div class="flex gap-2">
+                    <div class="flex gap-2 items-center">
+                      <c-input
+                        [control]="
+                          formgExceedbasedByStepWeight.get('shippingCost')
+                        "
+                        classInput="w-full inputBorder text-right"
+                        placeholder="จำนวนเงิน"
+                        dMask="separator.2"
+                        thousandSeparator=","
+                        [dNumber]="true"
+                        (valueControl)="
+                          convertNumberExceed(
+                            $event.target.value,
+                            'formgExceedbasedByStepWeight',
+                            'shippingCost'
+                          )
+                        "
+                      ></c-input>
+                      บาท
+                      <!-- <div class="flex gap-2">
+                        <input
+                          [formControl]="
+                            shippingForm.get(
+                              'calnumberProductsWeight.exceedKg.freeshipping'
+                            )
+                          "
+                          id="chk_weightExceed"
+                          type="checkbox"
+                        />
+                        <label for="chk_weightExceed">ไม่คิดค่าจัดส่ง</label>
+                      </div> -->
+                    </div>
+                  </div>
+                </div>
+                <div class="flex gap-4 items-center">
+                  <div class="flex gap-3 items-center">
+                    <input         
+                      type="checkbox"
+                      class="w-5 h-5"
+                      id="cbShipfree"
+                      [formControl]="cbbasedByStepWeight"
+                      (change)="onUpdateShipfree('shippingMethodAttribute.minOrderTotalAmount', 'cbbasedByStepWeight')"
+                    />
+
+                    <div class="text-lg">
+                      <span style="color: #ff8e00"> **เงื่อนไขพิเศษ </span> จัดส่งฟรี
+                      เมื่อราคาของสินค้าหลังหักส่วนลดแล้ว มากกว่า
+                    </div>
+                  </div>
+
+                  <div class="flex gap-2 items-center">
+                    <c-input
+                      [control]="shippingFormReal.get('shippingMethodAttribute.minOrderTotalAmount')"
+                      classInput="w-full text-right {{ cbbasedByStepWeight.value == true ? 'inputBorder' : 'inputBorder-disabled' }}"
+                      placeholder="จำนวนเงิน"
+                      [dNumber]="true"
+                      dMask="separator.2"
+                      thousandSeparator=","
+                      [disabled]="cbbasedByStepWeight.value == true ? false : true"
+                      (valueControl)="
+                        convertNumberShipfree(
+                          'cbbasedByStepWeight',
+                          $event.target.value,
+                          'shippingMethodAttribute.minOrderTotalAmount'
+                        )
+                      "
+                    ></c-input>
+                    บาท
+                  </div>
+                </div>
+                <div>
+                  <button
+                    *ngIf="shippingFormReal.get('shippingMethodAttribute.shippingCost').value.length < 5"
+                    (click)="addRow('basedByStepWeight', shippingFormReal.get('shippingMethodAttribute.shippingCost').value.length)"
+                    class="btn_add"
+                  >
+                    เพิ่มจำนวนช่วง
+                  </button>
+                </div>
+              </div>
+
+              <div
+                formGroupName="shippingMethodAttribute"
+                *ngSwitchCase="'basedByOrderPrice'"
+                class="flex flex-col gap-7"
+              >
+                <div class="mb-2">คิดตามราคาของสินค้าหลังหักส่วนลดแล้ว</div>
+
+                <div
+                  formArrayName="shippingCost"
+                  *ngFor="
+                    let item of groupArrshippingMethodAttribute.controls;
+                    let i = index
+                  "
+                  class="flex gap-4 items-center"
+                >
+                  <div [formGroupName]="i" class="flex gap-4 items-center">
+                    <div class="">
+                      <div class="flex gap-2 items-center w-96">
+                        ไม่เกิน
+                        <c-input
+                          [groupArrshipping]="true"
+                          (keyup)="setExceedChange('basedByOrderPrice')"
+                          [control]="item.get('minOrderTotalAmount')"
+                          classInput="w-full inputBorder text-right"
+                          placeholder="จำนวนเงิน"
+                          [dNumber]="true"
+                          dMask="separator.2"
+                          thousandSeparator=","
+                          (valueControl)="
+                            convertArrNumber(
+                              $event.target.value,
+                              'basedByOrderPrice',
+                              'minOrderTotalAmount',
+                              i
+                            )
+                          "
+                        ></c-input>
+                        บาท
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <div class="flex gap-2 items-center">
+                        <c-input
+                          [control]="item.get('shippingCost')"
+                          classInput="w-full inputBorder text-right"
+                          placeholder="จำนวนเงิน"
+                          [dNumber]="true"
+                          dMask="separator.2"
+                          thousandSeparator=","
+                          (valueControl)="
+                            convertArrNumber(
+                              $event.target.value,
+                              'basedByOrderPrice',
+                              'shippingCost',
+                              i
+                            )
+                          "
+                        ></c-input>
+                        บาท
+                        <!-- <div class="flex gap-2">
+                          <input
+                            [formControl]="item.get('freeshipping')"
+                            id="chk_discount{{ i }}"
+                            type="checkbox"
+                          />
+                          <label for="chk_discount{{ i }}">ไม่คิดค่าจัดส่ง</label>
+                        </div> -->
+
+                        <div class="flex gap-2 items-end">
+                          <button
+                            *ngIf="i > 0"
+                            (click)="deleteGroup(i, 'basedByOrderPrice')"
+                            class="bullet_gray"
+                            style="width: 35px; height: 35px"
+                          >
+                            <fa-icon [icon]="faTrash"></fa-icon>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex gap-4 items-center">
+                  <div class="w-96">
+                    เกิน
+                    {{
+                      formgExceedbasedByOrderPrice.get(
+                        'minOrderTotalAmount'
+                      ).value | number
+                    }}
+                    บาทขึ้นไป
+                  </div>
+                  <div class="flex gap-2">
+                    <div class="flex gap-2 items-center">
+                      <c-input
+                        [control]="
+                          formgExceedbasedByOrderPrice.get('shippingCost')
+                        "
+                        classInput="w-full inputBorder text-right"
+                        placeholder="จำนวนเงิน"
+                        [dNumber]="true"
+                        dMask="separator.2"
+                        thousandSeparator=","
+                        (valueControl)="
+                          convertNumberExceed(
+                            $event.target.value,
+                            'formgExceedbasedByOrderPrice',
+                            'shippingCost'
+                          )
+                        "
+                      ></c-input>
+                      บาท
+                      <!-- <div class="flex gap-2">
+                        <input
+                          [formControl]="
+                            shippingForm.get(
+                              'calnumberProductsDiscount.exceedPrice.freeshipping'
+                            )
+                          "
+                          id="chk_discountExceed"
+                          type="checkbox"
+                        />
+                        <label for="chk_discountExceed">ไม่คิดค่าจัดส่ง</label>
+                      </div> -->
+                    </div>
+                  </div>
+                </div>
+                <!-- <div class="flex gap-4 items-end">
+                  <div class="text-lg">
+                    <span style="color: #ff8e00"> **เงื่อนไขพิเศษ </span> จัดส่งฟรี
+                    เมื่อราคาของสินค้าหลังหักส่วนลดแล้ว ตั้งแต่
+                  </div>
+                  <div class="flex gap-2 items-end">
+                    <c-input
+                      classInput="w-full inputBorder"
+                      placeholder="จำนวนเงิน"
+                    ></c-input>
+                    บาท
+                  </div>
+                </div> -->
+                <div>
+                  <button
+                    *ngIf="
+                      shippingFormReal.get('shippingMethodAttribute.shippingCost').value.length < 5
+                    "
+                    (click)="addRow('basedByOrderPrice', shippingFormReal.get('shippingMethodAttribute.shippingCost').value.length)"
+                    class="btn_add"
+                  >
+                    เพิ่มจำนวนช่วง
+                  </button>
+                </div>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="flex flex-row justify-center mt-10">
+      <button routerLink="/app/setting/shipping-channels" class="btn_disabled">
+        ย้อนกลับ
+      </button>
+      <!-- [ngClass]="shippingFormReal.valid && shippingFormReal.get('deliveryTime.earliest') < shippingFormReal.get('deliveryTime.last') ? 'btn_blue_small' : 'btn_blue_small_disabled'" -->
+      <button
+        *ngIf="!clicked && shippingFormReal.valid && shippingFormReal.get('deliveryTime.earliest').value < shippingFormReal.get('deliveryTime.last').value"
+        [disabled]="clicked"
+        (click)="params === 'new' ? submit() : update()"
+        class="ml-3 btn_blue_small"
+      >
+        {{ params === 'new' ? 'สร้างช่องทาง' : 'บันทึก' }}
+      </button>
+      <button
+        *ngIf="clicked || shippingFormReal.invalid
+        || shippingFormReal.get('deliveryTime.earliest').value > shippingFormReal.get('deliveryTime.last').value
+        || shippingFormReal.get('deliveryTime.earliest').value == shippingFormReal.get('deliveryTime.last').value"
+        class="ml-3 btn_blue_small_disabled"
+      >
+        {{ params === 'new' ? 'สร้างช่องทาง' : 'บันทึก' }}
+      </button>
+    </div>
+    
+  </div>
+
+
+
+
+</c-page-container>
+
